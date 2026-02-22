@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>STAT 123 Horse Race Review</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(to bottom, #87CEEB, #e0f7ff);
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 { margin-top: 20px; }
+
+    #setup {
+      margin: 20px;
+    }
+
+    .track {
+      position: relative;
+      width: 90%;
+      height: 120px;
+      margin: 20px auto;
+      background: #eee;
+      border: 3px solid #333;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .horse {
+      position: absolute;
+      top: 40px;
+      left: 0;
+      font-size: 40px;
+      transition: left 0.5s ease;
+    }
+
+    .finish {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      font-weight: bold;
+    }
+
+    #question-box {
+      margin: 20px auto;
+      width: 70%;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px gray;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 6px;
+      border: none;
+      background-color: #333;
+      color: white;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    #scoreboard {
+      margin-top: 15px;
+      font-size: 18px;
+    }
+
+    #progressBarContainer {
+      width: 70%;
+      height: 20px;
+      background: #ddd;
+      margin: 10px auto;
+      border-radius: 10px;
+    }
+
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: green;
+      border-radius: 10px;
+      transition: width 0.4s;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🐎 STAT 123 Horse Race Review 🏁</h1>
+
+<div id="setup">
+  <h3>Choose Your Horse</h3>
+  <label>Horse Number:
+    <select id="horseNumber">
+      <option>1</option>
+      <option>2</option>
+      <option>3</option>
+      <option>7</option>
+      <option>23</option>
+    </select>
+  </label>
+  <br><br>
+  <label>Horse Color:
+    <input type="color" id="horseColor" value="#8B4513">
+  </label>
+  <br><br>
+  <button onclick="startGame()">Start Race</button>
+</div>
+
+<div class="track">
+  <div class="horse" id="horse">🐎</div>
+  <div class="finish">🏁 Finish</div>
+</div>
+
+<div id="progressBarContainer">
+  <div id="progressBar"></div>
+</div>
+
+<div id="question-box" style="display:none;">
+  <h3 id="question"></h3>
+  <div id="choices"></div>
+</div>
+
+<div id="scoreboard"></div>
+<div id="final"></div>
+
+<script>
+
+let questions = [
+  {q:"Is height a categorical or quantitative variable?", c:["Categorical","Quantitative"], a:1},
+  {q:"Which graph is best for comparing categories?", c:["Histogram","Bar Chart","Scatterplot"], a:1},
+  {q:"What does a histogram display?", c:["Categories","Distribution of quantitative data","Two variables"], a:1},
+  {q:"Mean is affected by:", c:["Outliers","Nothing","Only sample size"], a:0},
+  {q:"Median is best used when data is:", c:["Symmetric","Skewed with outliers","Perfectly normal"], a:1},
+  {q:"Which graph shows relationship between two quantitative variables?", c:["Scatterplot","Pie Chart","Bar Graph"], a:0},
+  {q:"If graph tail is to the right, it's:", c:["Left skewed","Right skewed","Symmetric"], a:1},
+  {q:"Standard deviation measures:", c:["Center","Spread","Shape"], a:1},
+  {q:"Which is categorical?", c:["Weight","Eye color","Income"], a:1},
+  {q:"A boxplot shows:", c:["Exact data points","Five-number summary","Categories only"], a:1},
+  {q:"IQR measures:", c:["Range","Middle 50% spread","Mean"], a:1},
+  {q:"Outliers are usually beyond:", c:["1 IQR","1.5 IQR","3 IQR"], a:1},
+  {q:"A pie chart is best for:", c:["Trends","Parts of a whole","Relationships"], a:1},
+  {q:"Correlation tells us:", c:["Strength of linear relationship","Causation","Spread"], a:0},
+  {q:"A strong positive correlation means:", c:["Downward trend","Upward trend","No pattern"], a:1},
+  {q:"Range is:", c:["Max - Min","Mean - Median","Q3 - Q1"], a:0},
+  {q:"Which describes symmetric data?", c:["Mean ≈ Median","Long tail right","Long tail left"], a:0},
+  {q:"Scatterplot outlier would:", c:["Follow pattern","Be far from trend","Change category"], a:1},
+  {q:"Quantitative data is:", c:["Numbers with meaning","Colors","Names"], a:0},
+  {q:"Categorical data is:", c:["Measured","Counted in groups","Continuous"], a:1},
+  {q:"If median > mean, data is likely:", c:["Right skewed","Left skewed","Normal"], a:1},
+  {q:"Box of boxplot represents:", c:["Full range","Middle 50%","Mean"], a:1},
+  {q:"Which graph for distribution shape?", c:["Histogram","Pie","Bar"], a:0},
+  {q:"Two categorical variables use:", c:["Side-by-side bar chart","Scatterplot","Histogram"], a:0},
+  {q:"Which measure resists outliers?", c:["Mean","Median","Range"], a:1}
+];
+
+let correct = 0;
+let totalAnswered = 0;
+let horsePosition = 0;
+let startTime;
+let currentQuestion;
+let usedQuestions = [];
+
+function startGame(){
+  document.getElementById("setup").style.display="none";
+  document.getElementById("question-box").style.display="block";
+  document.getElementById("horse").style.color = document.getElementById("horseColor").value;
+  document.getElementById("horse").innerHTML = "🐎"+document.getElementById("horseNumber").value;
+  startTime = new Date();
+  nextQuestion();
+}
+
+function nextQuestion(){
+  if(correct >= 5){
+    endGame();
+    return;
+  }
+
+  if(usedQuestions.length === questions.length){
+    usedQuestions = [];
+  }
+
+  do{
+    currentQuestion = Math.floor(Math.random()*questions.length);
+  }while(usedQuestions.includes(currentQuestion));
+
+  usedQuestions.push(currentQuestion);
+
+  document.getElementById("question").innerText = questions[currentQuestion].q;
+  let choicesDiv = document.getElementById("choices");
+  choicesDiv.innerHTML = "";
+
+  questions[currentQuestion].c.forEach((choice,index)=>{
+    let btn = document.createElement("button");
+    btn.innerText = choice;
+    btn.onclick = function(){checkAnswer(index)};
+    choicesDiv.appendChild(btn);
+  });
+}
+
+function checkAnswer(choice){
+  totalAnswered++;
+  if(choice === questions[currentQuestion].a){
+    correct++;
+    horsePosition += 15;
+  } else {
+    horsePosition -= 5;
+    if(horsePosition < 0) horsePosition = 0;
+  }
+
+  document.getElementById("horse").style.left = horsePosition + "%";
+  document.getElementById("progressBar").style.width = (correct/5*100) + "%";
+  document.getElementById("scoreboard").innerText =
+    "Correct: "+correct+" | Total Answered: "+totalAnswered;
+
+  nextQuestion();
+}
+
+function endGame(){
+  let endTime = new Date();
+  let timeTaken = (endTime - startTime)/1000;
+  let accuracy = (correct/totalAnswered)*100;
+  let score = Math.round((accuracy*2) + (100 - timeTaken));
+
+  document.getElementById("question-box").style.display="none";
+  document.getElementById("final").innerHTML =
+    "<h2>🏆 Race Finished!</h2>"+
+    "<p>Time: "+timeTaken.toFixed(1)+" seconds</p>"+
+    "<p>Accuracy: "+accuracy.toFixed(1)+"%</p>"+
+    "<p><strong>Performance Score: "+score+"</strong></p>"+
+    "<button onclick='location.reload()'>Race Again</button>";
+}
+
+</script>
+
+</body>
+</html>
